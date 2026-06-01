@@ -121,6 +121,10 @@
         <input type="text" id="clientId" placeholder="Spotify Client ID">
         <button class="btn-acc" id="connectBtn">Connect</button>
       </div>
+      <div class="field" style="margin-top:8px">
+        <input type="text" id="artistInput" placeholder="Artist URL, ID, or name">
+        <button class="btn-ghost" id="setArtistBtn">Set artist</button>
+      </div>
       <div class="help" id="helpTxt">
         Free at developer.spotify.com → Create app → add this page's URL as a Redirect URI.
       </div>
@@ -217,21 +221,20 @@ async function api(path){
 }
 
 /* ---------- pull catalogue ---------- */
-async function findArtist(){
-  // resolve the logged-in user's own artist profile via a search fallback is unreliable;
-  // ask user for artist on first run.
-  if(state.artistId) return state.artistId;
-  const q = prompt('Enter your Spotify artist name (or paste your artist URL/ID):');
-  if(!q) return null;
+async function setArtist(){
+  if(!token()){ alert('Connect to Spotify first.'); return; }
+  const q = document.getElementById('artistInput').value.trim();
+  if(!q){ alert('Paste your Spotify artist URL, ID, or name first.'); return; }
   let id = parseId(q);
   if(!id){
     const s = await api('/search?type=artist&limit=5&q='+encodeURIComponent(q));
     const items = s.artists?.items||[];
-    if(!items.length){ alert('No artist found.'); return null; }
+    if(!items.length){ alert('No artist found for "'+q+'". Try pasting your artist URL or ID instead.'); return; }
     id = items[0].id; state.artistName = items[0].name;
+    document.getElementById('connState').textContent = 'found: '+items[0].name;
   }
   state.artistId = id; save();
-  return id;
+  await refresh();
 }
 function parseId(s){
   const m = s.match(/artist[/:]([A-Za-z0-9]{22})/) || s.match(/^([A-Za-z0-9]{22})$/);
@@ -240,8 +243,8 @@ function parseId(s){
 
 async function refresh(){
   if(!token()){ alert('Connect to Spotify first.'); return; }
-  const aid = await findArtist();
-  if(!aid) return;
+  if(!state.artistId){ alert('Set your artist first — paste your artist URL, ID, or name in the box and hit "Set artist".'); return; }
+  const aid = state.artistId;
   document.getElementById('connState').textContent = 'loading…';
   const albums = await api('/artists/'+aid+'/albums?include_groups=album,single&limit=50&market=GB');
   const releases = [];
@@ -425,13 +428,16 @@ function importCSV(file){
 (async function(){
   load();
   if(state.clientId) document.getElementById('clientId').value = state.clientId;
+  if(state.artistId) document.getElementById('artistInput').value = state.artistName || state.artistId;
   if(new URLSearchParams(location.search).get('code')){
     const ok = await handleRedirect();
-    if(ok){ setConn(true); await refresh(); }
+    if(ok){ setConn(true); if(state.artistId) await refresh(); }
   } else if(token()){ setConn(true); }
   render();
 
   document.getElementById('connectBtn').onclick = beginAuth;
+  document.getElementById('setArtistBtn').onclick = setArtist;
+  document.getElementById('artistInput').onkeydown = e=>{if(e.key==='Enter')setArtist();};
   document.getElementById('refreshBtn').onclick = refresh;
   document.getElementById('exportBtn').onclick = exportBackup;
   document.getElementById('importBtn').onclick = ()=>document.getElementById('importFile').click();
