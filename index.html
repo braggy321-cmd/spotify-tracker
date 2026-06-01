@@ -14,7 +14,7 @@
     --line:#2a2a32;
     --txt:#f4f4f5;
     --muted:#8b8b96;
-    --acc:#1db954;        /* spotify green */
+    --acc:#1db954;
     --acc-dim:#13682f;
     --hot:#ff5c38;
     --gold:#f5c518;
@@ -163,13 +163,10 @@
 const LS_KEY = 'waveform_tracker_v1';
 const SCOPES = 'user-read-private';
 let state = { artistId:null, artistName:null, clientId:null, releases:[], streams:{} };
-// streams[trackId] = [{t: isoDate, v: number}, ...]
 
-/* ---------- storage ---------- */
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
 function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r) state=JSON.parse(r); }catch(e){} }
 
-/* ---------- spotify PKCE auth ---------- */
 function rand(n){const a=new Uint8Array(n);crypto.getRandomValues(a);
   return Array.from(a,b=>('0'+(b&0xff).toString(16)).slice(-2)).join('').slice(0,n);}
 async function sha256(plain){const d=new TextEncoder().encode(plain);
@@ -207,7 +204,7 @@ async function handleRedirect(){
   const data = await res.json();
   if(data.access_token){
     sessionStorage.setItem('access_token', data.access_token);
-    history.replaceState({}, '', redirect); // clean ?code
+    history.replaceState({}, '', redirect);
     return true;
   }
   return false;
@@ -220,7 +217,6 @@ async function api(path){
   return r.json();
 }
 
-/* ---------- pull catalogue ---------- */
 async function setArtist(){
   if(!token()){ alert('Connect to Spotify first.'); return; }
   const q = document.getElementById('artistInput').value.trim();
@@ -263,7 +259,6 @@ async function refresh(){
   render();
 }
 
-/* ---------- streams ---------- */
 function logStream(trackId, inputEl){
   const v = parseInt(inputEl.value.replace(/[^0-9]/g,''),10);
   if(isNaN(v)){ inputEl.focus(); return; }
@@ -280,14 +275,13 @@ function delta(trackId){
   return h[h.length-1].v - h[h.length-2].v;
 }
 
-/* ---------- render ---------- */
 function fmt(n){ return n.toLocaleString('en-GB'); }
 function render(){
   const list = document.getElementById('releaseList');
   if(!state.releases.length){
     list.innerHTML = `<div class="empty">
       <h2 style="font-family:Anton;font-size:26px">No releases yet</h2>
-      <p>Connect to Spotify above, then hit <b>Refresh</b> to pull your catalogue.<br>
+      <p>Connect to Spotify above, set your artist, then hit <b>Refresh</b> to pull your catalogue.<br>
       Or if your music isn't live yet, it'll appear here once it is.</p></div>`;
     updateStats(); return;
   }
@@ -326,7 +320,6 @@ function render(){
     </div>`;
   }).join('');
 
-  // wire up inputs
   list.querySelectorAll('[data-log]').forEach(b=>{
     b.onclick=()=>{const id=b.dataset.log;
       logStream(id, list.querySelector(`[data-track="${id}"]`));};
@@ -351,7 +344,6 @@ function setConn(ok){
   el.className = ok?'ok':'';
 }
 
-/* ---------- backup ---------- */
 function exportBackup(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -361,13 +353,12 @@ function importBackup(file){
   const r=new FileReader();
   r.onload=()=>{try{state=JSON.parse(r.result);save();render();
     if(state.clientId)document.getElementById('clientId').value=state.clientId;
+    if(state.artistId)document.getElementById('artistInput').value=state.artistName||state.artistId;
   }catch(e){alert('Invalid backup file.');}};
   r.readAsText(file);
 }
 
-/* ---------- S4A CSV import ---------- */
 function parseCSV(text){
-  // handles quoted fields and commas inside quotes
   const rows=[]; let row=[], cur='', q=false;
   for(let i=0;i<text.length;i++){
     const c=text[i];
@@ -392,14 +383,12 @@ function importCSV(file){
     const rows=parseCSV(r.result);
     if(rows.length<2){alert('CSV looks empty.');return;}
     const head=rows[0].map(h=>h.toLowerCase().trim());
-    // find the track-name column and the streams column
     const nameCol=head.findIndex(h=>/track|song|title/.test(h));
     const streamCol=head.findIndex(h=>/stream/.test(h));
     if(nameCol<0||streamCol<0){
       alert('Could not find a track-name column and a streams column in this CSV.\n\nFound columns: '+head.join(', '));
       return;
     }
-    // build lookup of all known tracks by normalised name
     const lookup={};
     state.releases.forEach(rel=>rel.tracks.forEach(t=>{lookup[norm(t.name)]=t.id;}));
     let matched=0, missed=[];
@@ -424,7 +413,6 @@ function importCSV(file){
   r.readAsText(file);
 }
 
-/* ---------- boot ---------- */
 (async function(){
   load();
   if(state.clientId) document.getElementById('clientId').value = state.clientId;
