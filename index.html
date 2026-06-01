@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAVEFORM — Release & Streams Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Anton&display=swap');
+
+  :root{
+    --bg:#0a0a0c;
+    --panel:#141418;
+    --panel-2:#1b1b21;
+    --line:#2a2a32;
+    --txt:#f4f4f5;
+    --muted:#8b8b96;
+    --acc:#1db954;        /* spotify green */
+    --acc-dim:#13682f;
+    --hot:#ff5c38;
+    --gold:#f5c518;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:'Familjen Grotesk',sans-serif;
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 12% -10%, rgba(29,185,84,.10), transparent 45%),
+      radial-gradient(circle at 95% 0%, rgba(255,92,56,.06), transparent 40%);
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:28px;flex-wrap:wrap}
+  h1{font-family:'Anton',sans-serif;font-size:clamp(38px,7vw,72px);line-height:.9;
+    letter-spacing:-1px;text-transform:uppercase}
+  h1 .dot{color:var(--acc)}
+  .tag{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-top:6px}
+
+  .conn{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .status{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .status b{color:var(--hot)}
+  .status b.ok{color:var(--acc)}
+  input,button{font-family:inherit}
+  .field{display:flex;gap:8px}
+  input[type=text]{background:var(--panel);border:1px solid var(--line);color:var(--txt);
+    padding:9px 12px;border-radius:8px;font-size:13px;width:230px;outline:none}
+  input[type=text]:focus{border-color:var(--acc)}
+  button{cursor:pointer;border:none;border-radius:8px;font-weight:600;font-size:13px;
+    padding:9px 14px;transition:.15s;letter-spacing:.3px}
+  .btn-acc{background:var(--acc);color:#06120a}
+  .btn-acc:hover{background:#23d761}
+  .btn-ghost{background:var(--panel-2);color:var(--txt);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--acc)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .stat .k{font-family:'Anton',sans-serif;font-size:34px;letter-spacing:-.5px}
+  .stat .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+  .stat.green .k{color:var(--acc)}
+  .stat.gold .k{color:var(--gold)}
+
+  .section-h{display:flex;align-items:center;gap:12px;margin:8px 0 16px}
+  .section-h h2{font-family:'Anton',sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.5px}
+  .section-h .rule{flex:1;height:1px;background:var(--line)}
+
+  .release{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:14px;display:flex;gap:16px;align-items:flex-start}
+  .art{width:84px;height:84px;border-radius:10px;object-fit:cover;flex-shrink:0;
+    background:var(--panel-2);border:1px solid var(--line)}
+  .r-body{flex:1;min-width:0}
+  .r-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .r-title{font-size:18px;font-weight:700;line-height:1.1}
+  .r-meta{color:var(--muted);font-size:12px;margin-top:3px}
+  .pop{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:11px;
+    text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .pop b{color:var(--acc);font-size:13px}
+
+  .tracks{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .track{display:grid;grid-template-columns:1fr 110px 100px 90px;gap:10px;align-items:center;
+    padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .track:last-child{border-bottom:none}
+  .track .tn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .track .tn small{color:var(--muted);display:block;font-size:11px}
+  .streams{font-family:'Anton',sans-serif;font-size:18px;text-align:right}
+  .delta{font-size:11px;text-align:right}
+  .delta.up{color:var(--acc)}
+  .delta.flat{color:var(--muted)}
+  .s-input{background:var(--panel-2);border:1px solid var(--line);color:var(--txt);
+    padding:6px 8px;border-radius:6px;width:90px;font-size:13px;text-align:right;outline:none}
+  .s-input:focus{border-color:var(--acc)}
+  .log-btn{background:var(--acc-dim);color:var(--txt);padding:6px 10px;border-radius:6px;font-size:12px}
+  .log-btn:hover{background:var(--acc);color:#06120a}
+
+  .empty{text-align:center;color:var(--muted);padding:60px 20px;border:1px dashed var(--line);
+    border-radius:14px;background:var(--panel)}
+  .empty p{margin-top:8px;font-size:14px;line-height:1.6}
+  .note{background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.3);
+    border-radius:10px;padding:12px 14px;font-size:13px;color:#f1d98a;margin-bottom:22px;line-height:1.5}
+  .note b{color:var(--gold)}
+  a{color:var(--acc)}
+  .help{color:var(--muted);font-size:11px;margin-top:6px;max-width:340px;text-align:right;line-height:1.5}
+  .bar{height:5px;background:var(--panel-2);border-radius:3px;overflow:hidden;margin-top:7px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--acc-dim),var(--acc))}
+  .foot{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Wave<span class="dot">·</span>form</h1>
+      <div class="tag">Release &amp; Streams Tracker</div>
+    </div>
+    <div class="conn">
+      <div class="status">Spotify: <b id="connState">not connected</b></div>
+      <div class="field">
+        <input type="text" id="clientId" placeholder="Spotify Client ID">
+        <button class="btn-acc" id="connectBtn">Connect</button>
+      </div>
+      <div class="help" id="helpTxt">
+        Free at developer.spotify.com → Create app → add this page's URL as a Redirect URI.
+      </div>
+    </div>
+  </header>
+
+  <div class="note" id="streamNote">
+    <b>Heads up:</b> Spotify's public API doesn't expose stream counts — those live only in
+    Spotify&nbsp;for&nbsp;Artists. This tool pulls your <b>releases + popularity live</b> from Spotify,
+    and you log <b>stream totals manually</b> (copy from your S4A dashboard). Every entry is timestamped
+    so you see growth over time. Data saves in your browser. <i>(Save only works when you open this file
+    directly — not inside a preview.)</i>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k" id="stReleases">0</div><div class="l">Releases</div></div>
+    <div class="stat"><div class="k" id="stTracks">0</div><div class="l">Tracks</div></div>
+    <div class="stat green"><div class="k" id="stStreams">0</div><div class="l">Total Streams</div></div>
+    <div class="stat gold"><div class="k" id="stPop">—</div><div class="l">Avg Popularity</div></div>
+  </div>
+
+  <div class="section-h"><h2>Releases</h2><div class="rule"></div></div>
+  <div id="releaseList"></div>
+
+  <div class="foot">
+    <button class="btn-ghost" id="refreshBtn">↻ Refresh from Spotify</button>
+    <button class="btn-ghost" id="exportBtn">⬇ Export backup (JSON)</button>
+    <button class="btn-ghost" id="importBtn">⬆ Import backup</button>
+    <button class="btn-acc" id="csvBtn">⬆ Import S4A streams (CSV)</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none">
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'waveform_tracker_v1';
+const SCOPES = 'user-read-private';
+let state = { artistId:null, artistName:null, clientId:null, releases:[], streams:{} };
+// streams[trackId] = [{t: isoDate, v: number}, ...]
+
+/* ---------- storage ---------- */
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const r=localStorage.getItem(LS_KEY); if(r) state=JSON.parse(r); }catch(e){} }
+
+/* ---------- spotify PKCE auth ---------- */
+function rand(n){const a=new Uint8Array(n);crypto.getRandomValues(a);
+  return Array.from(a,b=>('0'+(b&0xff).toString(16)).slice(-2)).join('').slice(0,n);}
+async function sha256(plain){const d=new TextEncoder().encode(plain);
+  return crypto.subtle.digest('SHA-256',d);}
+function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf)))
+  .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+
+async function beginAuth(){
+  const cid = document.getElementById('clientId').value.trim();
+  if(!cid){ alert('Enter your Spotify Client ID first.'); return; }
+  state.clientId = cid; save();
+  const verifier = rand(96);
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const challenge = b64url(await sha256(verifier));
+  const redirect = location.origin + location.pathname;
+  const url = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: cid, response_type:'code', redirect_uri:redirect,
+    code_challenge_method:'S256', code_challenge:challenge, scope:SCOPES
+  });
+  location.href = url;
+}
+
+async function handleRedirect(){
+  const code = new URLSearchParams(location.search).get('code');
+  if(!code) return false;
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const redirect = location.origin + location.pathname;
+  const res = await fetch('https://accounts.spotify.com/api/token',{
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({
+      client_id: state.clientId, grant_type:'authorization_code', code,
+      redirect_uri:redirect, code_verifier:verifier
+    })
+  });
+  const data = await res.json();
+  if(data.access_token){
+    sessionStorage.setItem('access_token', data.access_token);
+    history.replaceState({}, '', redirect); // clean ?code
+    return true;
+  }
+  return false;
+}
+function token(){ return sessionStorage.getItem('access_token'); }
+
+async function api(path){
+  const r = await fetch('https://api.spotify.com/v1'+path,{headers:{Authorization:'Bearer '+token()}});
+  if(r.status===401){ setConn(false); throw new Error('token expired — reconnect'); }
+  return r.json();
+}
+
+/* ---------- pull catalogue ---------- */
+async function findArtist(){
+  // resolve the logged-in user's own artist profile via a search fallback is unreliable;
+  // ask user for artist on first run.
+  if(state.artistId) return state.artistId;
+  const q = prompt('Enter your Spotify artist name (or paste your artist URL/ID):');
+  if(!q) return null;
+  let id = parseId(q);
+  if(!id){
+    const s = await api('/search?type=artist&limit=5&q='+encodeURIComponent(q));
+    const items = s.artists?.items||[];
+    if(!items.length){ alert('No artist found.'); return null; }
+    id = items[0].id; state.artistName = items[0].name;
+  }
+  state.artistId = id; save();
+  return id;
+}
+function parseId(s){
+  const m = s.match(/artist[/:]([A-Za-z0-9]{22})/) || s.match(/^([A-Za-z0-9]{22})$/);
+  return m ? m[1] : null;
+}
+
+async function refresh(){
+  if(!token()){ alert('Connect to Spotify first.'); return; }
+  const aid = await findArtist();
+  if(!aid) return;
+  document.getElementById('connState').textContent = 'loading…';
+  const albums = await api('/artists/'+aid+'/albums?include_groups=album,single&limit=50&market=GB');
+  const releases = [];
+  for(const al of (albums.items||[])){
+    const full = await api('/albums/'+al.id);
+    releases.push({
+      id: al.id, name: al.name, date: al.release_date,
+      type: al.album_type, art: (al.images?.[1]||al.images?.[0])?.url || '',
+      pop: full.popularity ?? 0,
+      tracks: (full.tracks?.items||[]).map(t=>({id:t.id,name:t.name,n:t.track_number}))
+    });
+  }
+  releases.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  state.releases = releases; save();
+  setConn(true);
+  render();
+}
+
+/* ---------- streams ---------- */
+function logStream(trackId, inputEl){
+  const v = parseInt(inputEl.value.replace(/[^0-9]/g,''),10);
+  if(isNaN(v)){ inputEl.focus(); return; }
+  if(!state.streams[trackId]) state.streams[trackId]=[];
+  state.streams[trackId].push({t:new Date().toISOString(), v});
+  save(); render();
+}
+function latest(trackId){
+  const h = state.streams[trackId]; if(!h||!h.length) return null;
+  return h[h.length-1];
+}
+function delta(trackId){
+  const h = state.streams[trackId]; if(!h||h.length<2) return null;
+  return h[h.length-1].v - h[h.length-2].v;
+}
+
+/* ---------- render ---------- */
+function fmt(n){ return n.toLocaleString('en-GB'); }
+function render(){
+  const list = document.getElementById('releaseList');
+  if(!state.releases.length){
+    list.innerHTML = `<div class="empty">
+      <h2 style="font-family:Anton;font-size:26px">No releases yet</h2>
+      <p>Connect to Spotify above, then hit <b>Refresh</b> to pull your catalogue.<br>
+      Or if your music isn't live yet, it'll appear here once it is.</p></div>`;
+    updateStats(); return;
+  }
+  let totalStreams=0, totalTracks=0, popSum=0;
+  list.innerHTML = state.releases.map(r=>{
+    const tracks = r.tracks.map(t=>{
+      const lt = latest(t.id); const d = delta(t.id);
+      totalTracks++;
+      if(lt) totalStreams += lt.v;
+      const dHtml = d===null ? (lt?`<span class="delta flat">first log</span>`:'')
+        : `<span class="delta ${d>0?'up':'flat'}">${d>0?'▲ +'+fmt(d):'– '+fmt(d)}</span>`;
+      return `<div class="track">
+        <div class="tn">${t.n}. ${esc(t.name)}<small>${lt?('last logged '+new Date(lt.t).toLocaleDateString('en-GB')):'no data yet'}</small></div>
+        <div class="streams">${lt?fmt(lt.v):'—'}</div>
+        ${dHtml || '<span></span>'}
+        <div style="display:flex;gap:5px">
+          <input class="s-input" placeholder="streams" data-track="${t.id}">
+          <button class="log-btn" data-log="${t.id}">Log</button>
+        </div>
+      </div>`;
+    }).join('');
+    popSum += r.pop;
+    return `<div class="release">
+      ${r.art?`<img class="art" src="${r.art}" alt="">`:'<div class="art"></div>'}
+      <div class="r-body">
+        <div class="r-top">
+          <div>
+            <div class="r-title">${esc(r.name)}</div>
+            <div class="r-meta">${r.type.toUpperCase()} · ${r.date} · ${r.tracks.length} track${r.tracks.length>1?'s':''}</div>
+          </div>
+          <div class="pop">Popularity <b>${r.pop}</b>/100</div>
+        </div>
+        <div class="bar"><i style="width:${r.pop}%"></i></div>
+        <div class="tracks">${tracks}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // wire up inputs
+  list.querySelectorAll('[data-log]').forEach(b=>{
+    b.onclick=()=>{const id=b.dataset.log;
+      logStream(id, list.querySelector(`[data-track="${id}"]`));};
+  });
+  list.querySelectorAll('.s-input').forEach(inp=>{
+    inp.onkeydown=e=>{if(e.key==='Enter')logStream(inp.dataset.track,inp);};
+  });
+
+  updateStats(totalStreams,totalTracks, state.releases.length?Math.round(popSum/state.releases.length):0);
+}
+function updateStats(streams=0,tracks=0,pop=null){
+  document.getElementById('stReleases').textContent = state.releases.length;
+  document.getElementById('stTracks').textContent = tracks;
+  document.getElementById('stStreams').textContent = fmt(streams);
+  document.getElementById('stPop').textContent = pop===null||!state.releases.length?'—':pop;
+}
+function esc(s){return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+function setConn(ok){
+  const el=document.getElementById('connState');
+  el.textContent = ok?'connected':'not connected';
+  el.className = ok?'ok':'';
+}
+
+/* ---------- backup ---------- */
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='waveform-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importBackup(file){
+  const r=new FileReader();
+  r.onload=()=>{try{state=JSON.parse(r.result);save();render();
+    if(state.clientId)document.getElementById('clientId').value=state.clientId;
+  }catch(e){alert('Invalid backup file.');}};
+  r.readAsText(file);
+}
+
+/* ---------- S4A CSV import ---------- */
+function parseCSV(text){
+  // handles quoted fields and commas inside quotes
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=c;
+    } else {
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cur); cur=''; }
+      else if(c==='\n'||c==='\r'){ if(cur!==''||row.length){row.push(cur);rows.push(row);row=[];cur='';} }
+      else cur+=c;
+    }
+  }
+  if(cur!==''||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.length>1);
+}
+function norm(s){return (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+
+function importCSV(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    const rows=parseCSV(r.result);
+    if(rows.length<2){alert('CSV looks empty.');return;}
+    const head=rows[0].map(h=>h.toLowerCase().trim());
+    // find the track-name column and the streams column
+    const nameCol=head.findIndex(h=>/track|song|title/.test(h));
+    const streamCol=head.findIndex(h=>/stream/.test(h));
+    if(nameCol<0||streamCol<0){
+      alert('Could not find a track-name column and a streams column in this CSV.\n\nFound columns: '+head.join(', '));
+      return;
+    }
+    // build lookup of all known tracks by normalised name
+    const lookup={};
+    state.releases.forEach(rel=>rel.tracks.forEach(t=>{lookup[norm(t.name)]=t.id;}));
+    let matched=0, missed=[];
+    const now=new Date().toISOString();
+    for(let i=1;i<rows.length;i++){
+      const tname=rows[i][nameCol];
+      const sval=parseInt((rows[i][streamCol]||'').replace(/[^0-9]/g,''),10);
+      if(!tname||isNaN(sval))continue;
+      const id=lookup[norm(tname)];
+      if(id){
+        if(!state.streams[id])state.streams[id]=[];
+        const last=state.streams[id][state.streams[id].length-1];
+        if(!last||last.v!==sval) state.streams[id].push({t:now,v:sval});
+        matched++;
+      } else missed.push(tname);
+    }
+    save();render();
+    let msg=`Imported streams for ${matched} track${matched!==1?'s':''}.`;
+    if(missed.length)msg+=`\n\nNo match for ${missed.length}: ${missed.slice(0,8).join(', ')}${missed.length>8?'…':''}\n(Names must match your Spotify track titles — refresh from Spotify first if needed.)`;
+    alert(msg);
+  };
+  r.readAsText(file);
+}
+
+/* ---------- boot ---------- */
+(async function(){
+  load();
+  if(state.clientId) document.getElementById('clientId').value = state.clientId;
+  if(new URLSearchParams(location.search).get('code')){
+    const ok = await handleRedirect();
+    if(ok){ setConn(true); await refresh(); }
+  } else if(token()){ setConn(true); }
+  render();
+
+  document.getElementById('connectBtn').onclick = beginAuth;
+  document.getElementById('refreshBtn').onclick = refresh;
+  document.getElementById('exportBtn').onclick = exportBackup;
+  document.getElementById('importBtn').onclick = ()=>document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = e=>{if(e.target.files[0])importBackup(e.target.files[0]);};
+  document.getElementById('csvBtn').onclick = ()=>document.getElementById('csvFile').click();
+  document.getElementById('csvFile').onchange = e=>{if(e.target.files[0]){importCSV(e.target.files[0]);e.target.value='';}};
+})();
+</script>
+</body>
+</html>
